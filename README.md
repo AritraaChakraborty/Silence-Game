@@ -2,7 +2,7 @@
 
 **Silence: Demon Realm** is a high-stakes survival game built with vanilla JavaScript and CSS3. It explores the tension between movement and visibility, forcing players to balance their survival instincts with the risk of "Chaos."
 
-Created by **Aritraa Chakraborty (Recurrex)** for the 2026 Game Development Competition.
+Created by **Team Recurrex** for the 2026 Game Development Competition.
 
 ---
 
