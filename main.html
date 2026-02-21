@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Silence: Demon Realm</title>
+
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:black;
+    font-family:Arial;
+    color:white;
+    text-align:center;
+}
+
+h1{
+    position:absolute;
+    width:100%;
+    top:10px;
+    letter-spacing:3px;
+}
+
+#game{
+    perspective:800px;
+    width:100vw;
+    height:100vh;
+    position:relative;
+}
+
+#arena{
+    width:900px;
+    height:900px;
+    background:radial-gradient(circle,#111 20%,black 70%);
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%) rotateX(60deg);
+    border-radius:50%;
+}
+
+.hero{
+    width:30px;
+    height:30px;
+    background:white;
+    position:absolute;
+    border-radius:50%;
+}
+
+/* SCARY DEMON */
+.demon{
+    width:40px;
+    height:40px;
+    position:absolute;
+    border-radius:50%;
+    background:radial-gradient(circle,#400 20%,#000 70%);
+    box-shadow:
+        0 0 20px red,
+        0 0 40px darkred,
+        0 0 60px crimson;
+    animation:pulse 1.5s infinite alternate;
+    transition:opacity 0.5s;
+}
+
+.demon::before,
+.demon::after{
+    content:"";
+    position:absolute;
+    width:6px;
+    height:6px;
+    background:white;
+    border-radius:50%;
+    top:12px;
+}
+
+.demon::before{ left:10px; }
+.demon::after{ right:10px; }
+
+@keyframes pulse{
+    from{ transform:scale(1); }
+    to{ transform:scale(1.2); }
+}
+
+/* SAFE ZONE */
+.safeZone{
+    position:absolute;
+    border-radius:50%;
+    border:3px solid cyan;
+    box-shadow:0 0 30px cyan;
+    background:rgba(0,255,255,0.15);
+}
+
+#chaosBar{
+    position:absolute;
+    bottom:20px;
+    left:50%;
+    transform:translateX(-50%);
+    width:300px;
+    height:20px;
+    background:gray;
+}
+
+#chaosFill{
+    height:100%;
+    width:0%;
+    background:red;
+}
+
+#timer{
+    position:absolute;
+    bottom:50px;
+    left:50%;
+    transform:translateX(-50%);
+}
+
+#message{
+    position:absolute;
+    top:45%;
+    width:100%;
+    font-size:30px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>SILENCE: DEMON REALM</h1>
+
+<div id="game">
+    <div id="arena"></div>
+</div>
+
+<div id="chaosBar"><div id="chaosFill"></div></div>
+<div id="timer"></div>
+<div id="message"></div>
+
+<script>
+
+let game=document.getElementById("game");
+
+let hero=document.createElement("div");
+hero.className="hero";
+game.appendChild(hero);
+
+let heroX=window.innerWidth/2;
+let heroY=window.innerHeight/2;
+
+hero.style.left=heroX+"px";
+hero.style.top=heroY+"px";
+
+let demons=[];
+let safeZones=[];
+
+let chaos=0;
+let maxChaos=100;
+let gameDuration=90000; // 90 seconds
+let startTime=Date.now();
+let gameOver=false;
+
+let chaosFill=document.getElementById("chaosFill");
+let timerText=document.getElementById("timer");
+let message=document.getElementById("message");
+
+/* Spawn Demon */
+function spawnDemon(){
+    let demon=document.createElement("div");
+    demon.className="demon";
+    demon.style.opacity="0";
+    game.appendChild(demon);
+
+    let x=Math.random()*window.innerWidth;
+    let y=Math.random()*window.innerHeight;
+
+    demon.style.left=x+"px";
+    demon.style.top=y+"px";
+
+    setTimeout(()=>{ demon.style.opacity="1"; },200);
+
+    demons.push({el:demon,x:x,y:y});
+}
+
+setInterval(spawnDemon,4000);
+
+/* Spawn Safe Zone */
+function spawnSafeZone(){
+    let zone=document.createElement("div");
+    zone.className="safeZone";
+
+    let size=120;
+    let x=Math.random()*(window.innerWidth-size);
+    let y=Math.random()*(window.innerHeight-size);
+
+    zone.style.width=size+"px";
+    zone.style.height=size+"px";
+    zone.style.left=x+"px";
+    zone.style.top=y+"px";
+
+    game.appendChild(zone);
+
+    let zoneObj={el:zone,x:x+size/2,y:y+size/2,radius:size/2};
+    safeZones.push(zoneObj);
+
+    setTimeout(()=>{
+        game.removeChild(zone);
+        safeZones=safeZones.filter(z=>z!==zoneObj);
+    },6000);
+}
+
+setInterval(spawnSafeZone,8000);
+
+/* Movement */
+document.addEventListener("keydown",e=>{
+    if(gameOver) return;
+
+    let speed=20;
+
+    if(e.key==="ArrowUp") heroY-=speed;
+    if(e.key==="ArrowDown") heroY+=speed;
+    if(e.key==="ArrowLeft") heroX-=speed;
+    if(e.key==="ArrowRight") heroX+=speed;
+
+    chaos+=2;
+
+    hero.style.left=heroX+"px";
+    hero.style.top=heroY+"px";
+});
+
+/* Check Safe */
+function isSafe(){
+    for(let z of safeZones){
+        let dx=heroX-z.x;
+        let dy=heroY-z.y;
+        let dist=Math.sqrt(dx*dx+dy*dy);
+        if(dist<z.radius) return true;
+    }
+    return false;
+}
+
+/* Main Update */
+function update(){
+
+if(gameOver) return;
+
+let elapsed=Date.now()-startTime;
+let remaining=Math.max(0,90-Math.floor(elapsed/1000));
+timerText.innerText="Time: "+remaining+"s";
+
+chaos-=0.15;
+if(chaos<0) chaos=0;
+
+chaosFill.style.width=chaos+"%";
+document.body.style.background="rgb("+(chaos*2)+",0,0)";
+
+demons.forEach(d=>{
+    let dx=heroX-d.x;
+    let dy=heroY-d.y;
+    let dist=Math.sqrt(dx*dx+dy*dy);
+
+    let speed=1.5; // normal speed
+    d.x+=dx/dist*speed;
+    d.y+=dy/dist*speed;
+
+    d.el.style.left=d.x+"px";
+    d.el.style.top=d.y+"px";
+
+    // Screen shake when close
+    if(dist<120){
+        document.body.style.transform=
+        "translate("+(Math.random()*6-3)+"px,"+
+        (Math.random()*6-3)+"px)";
+    } else {
+        document.body.style.transform="translate(0,0)";
+    }
+
+    if(dist<20 && !isSafe()){
+        endGame("The demons consumed you.");
+    }
+});
+
+if(chaos>=maxChaos){
+    endGame("Chaos overwhelmed your mind.");
+}
+
+if(elapsed>=gameDuration){
+    endGame("You mastered silence.");
+}
+
+requestAnimationFrame(update);
+}
+
+function endGame(text){
+    gameOver=true;
+    message.innerHTML=text+"<br><br>Game Over.";
+}
+
+update();
+
+</script>
+
+</body>
+</html>
